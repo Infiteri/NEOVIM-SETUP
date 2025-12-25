@@ -365,3 +365,15 @@ lspconfig.clangd.setup {
   end,
 }
 require("flutter-tools").setup {} -- use defaults
+
+
+vim.api.nvim_create_autocmd("BufWritePre", {
+  pattern = "*.dart",
+  callback = function()
+    -- Format using dartls first
+    vim.lsp.buf.format({ async = false, filter = function(c) return c.name == "dartls" end })
+    -- Replace 2-space indents with 4-space (hacky)
+    vim.cmd([[%s/^\(\s*\)/\=repeat(' ', len(submatch(1))*2)/]])
+  end,
+})
+

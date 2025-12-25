@@ -1,123 +1,127 @@
--- This configuration should be added to your `lazy.lua` or plugin setup file
-
+-- This configuration should go in your lazy.lua or plugin setup file
 return {
-  -- Treesitter plugin
+  -- Treesitter
   {
     "nvim-treesitter/nvim-treesitter",
-    run = ":TSUpdate", -- Automatically run TSUpdate to update parsers
+    run = ":TSUpdate",
     config = function()
-      -- Import the nvim-treesitter config module
-      local ts_configs = require "nvim-treesitter.configs"
-
-      -- Configure Treesitter
-      ts_configs.setup {
-        -- Install parsers for all maintained languages (you can customize this list)
-        ensure_installed = "maintained", -- Or you can list specific languages like {'python', 'lua', 'javascript'}
-
-        -- Enable syntax highlighting
-        highlight = {
-          enable = true, -- Enable Treesitter-based syntax highlighting
-          disable = {}, -- Optionally disable for specific languages (e.g., {'html'})
-        },
-
-        -- Enable indentation based on Treesitter
-        indent = {
-          enable = true, -- Enable Treesitter-based indentation
-        },
-
-        -- Enable incremental selection based on Treesitter
+      require("nvim-treesitter.configs").setup {
+        ensure_installed = "maintained", -- or {'c', 'cpp', 'lua', 'python', ...}
+        highlight = { enable = true },
+        indent = { enable = true },
         incremental_selection = {
           enable = true,
           keymaps = {
-            init_selection = "gnn", -- Start a selection
-            node_incremental = "grn", -- Increment the node selection
-            node_decremental = "grm", -- Decrement the node selection
-            scope_incremental = "grc", -- Increment the scope (e.g., function, class)
+            init_selection = "gnn",
+            node_incremental = "grn",
+            node_decremental = "grm",
+            scope_incremental = "grc",
           },
         },
-
-        -- Enable text objects based on Treesitter (for example, selecting a function or class)
         textobjects = {
           enable = true,
           keymaps = {
-            -- Select the current function
-            ["af"] = "@function.outer", -- Select the entire function
-            ["if"] = "@function.inner", -- Select the inner part of a function (excluding its signature)
+            ["af"] = "@function.outer",
+            ["if"] = "@function.inner",
           },
-        },
-
-        -- Enable folding based on Treesitter
-        fold = {
-          enable = true,
-          autocomplete = false,
-        },
-        snippet = {
-          expand = function(args)
-            vim.fn["vsnip#expand"](args.body) -- You can use other snippet engines like UltiSnips or LuaSnip
-          end,
-       },
-        mapping = {
-          ["<C-n>"] = cmp.mapping.select_next_item(),
-          ["<C-p>"] = cmp.mapping.select_prev_item(),
-        },
-        sources = {
-          { name = "nvim_lsp" },
         },
       }
     end,
   },
 
-  -- Mason for managing LSP servers and other tools
+  {
+    'nvim-flutter/flutter-tools.nvim',
+    lazy = false,
+    dependencies = {
+        'nvim-lua/plenary.nvim',
+        'stevearc/dressing.nvim', -- optional for vim.ui.select
+    },
+    config = true,
+  },
+
+  -- Mason
   {
     "williamboman/mason.nvim",
     config = function()
-      require("mason").setup() -- Mason setup
+      require("mason").setup()
     end,
   },
 
-  -- Mason-lspconfig for automatic LSP server configuration
+  -- Mason LSP config
   {
     "williamboman/mason-lspconfig.nvim",
-    after = "mason.nvim", -- Make sure mason.nvim is loaded first
+    after = "mason.nvim",
     config = function()
       require("mason-lspconfig").setup {
-        ensure_installed = { "clangd", "clang-format" }, -- Automatically install clangd
-        automatic_installation = true, -- Automatically install LSP servers
+        ensure_installed = { "clangd", "dartls" }, -- Add dartls for Dart/Flutter
+        automatic_installation = true,
       }
     end,
   },
 
-  -- nvim-lspconfig for LSP server configuration
+  -- LSP Config
   {
     "neovim/nvim-lspconfig",
     after = "mason-lspconfig.nvim",
     config = function()
-      local lspconfig = require "lspconfig"
+      local lspconfig = require("lspconfig")
+      local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
+      local on_attach = function(client, bufnr)
+        local bufmap = function(mode, lhs, rhs)
+          vim.api.nvim_buf_set_keymap(bufnr, mode, lhs, rhs, { noremap = true, silent = true })
+        end
+
+        bufmap("n", "gd", "<cmd>lua vim.lsp.buf.definition()<CR>")
+        bufmap("n", "K", "<cmd>lua vim.lsp.buf.hover()<CR>")
+        bufmap("n", "gr", "<cmd>lua vim.lsp.buf.references()<CR>")
+        bufmap("n", "<leader>rn", "<cmd>lua vim.lsp.buf.rename()<CR>")
+
+        if client.supports_method("textDocument/formatting") then
+          vim.api.nvim_clear_autocmds({ group = "LspFormatting", buffer = bufnr })
+          vim.api.nvim_create_autocmd("BufWritePre", {
+            group = vim.api.nvim_create_augroup("LspFormatting", {}),
+            buffer = bufnr,
+            callback = function()
+              vim.lsp.buf.format({ bufnr = bufnr })
+            end,
+          })
+        end
+      end
+
+      -- C/C++
       lspconfig.clangd.setup {
-        on_attach = function(client, bufnr)
-          -- You can customize on_attach logic here
-          -- Example: Set keymaps or customize behavior on attach
-        end,
+        capabilities = capabilities,
+        on_attach = on_attach,
+        cmd = { "clangd", "--compile-commands-dir=." },
+      }
+
+      -- Dart/Flutter
+      lspconfig.dartls.setup {
+        capabilities = capabilities,
+        on_attach = on_attach,
       }
     end,
   },
 
+  -- Null-ls for formatting (clang-format, etc.)
   {
-  "jose-elias-alvarez/null-ls.nvim",
-  opts = function()
-    -- Print for debugging
-    vim.print("ASDASDASD")  -- Should print to Neovim's command line
-    local null_ls = require("nullls")  -- Correctly require null-ls
+    "jose-elias-alvarez/null-ls.nvim",
+    config = function()
+      local null_ls = require("null-ls")
+      null_ls.setup({
+        sources = {
+          null_ls.builtins.formatting.clang_format,
+          null_ls.builtins.formatting.dart_format,
+        },
+      })
+    end,
+  },
 
-    -- Set up null-ls
-    null_ls.setup({
-      -- Define your sources and configuration here
-      sources = {
-        null_ls.builtins.formatting.clang_format,
-      },
-    })
-  end,
+  -- Optional: completion & snippets
+  { "hrsh7th/nvim-cmp" },
+  { "hrsh7th/cmp-nvim-lsp" },
+  { "L3MON4D3/LuaSnip" },
+  { "rafamadriz/friendly-snippets" },
 }
 
-}

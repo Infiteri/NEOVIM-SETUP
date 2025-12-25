@@ -1,5 +1,10 @@
 vim.g.base46_cache = vim.fn.stdpath("data") .. "/base46/"
 vim.g.mapleader = " "
+vim.g.neovide_opacity = 0.8   
+
+vim.cmd([[hi Normal guibg=NONE ctermbg=NONE]])
+vim.cmd([[hi NormalNC guibg=NONE ctermbg=NONE]])
+-- Add other groups as needed   
 
 -- Use clang-format for both C and C++ files
 vim.g.neoformat_enabled_c = {'clangformat'}
@@ -34,6 +39,28 @@ require("lazy").setup({
     lazy = false,
     branch = "v2.5",
     import = "nvchad.plugins",
+  },
+  {
+    'xiyaowong/transparent.nvim',
+    config = function()
+      require('transparent').setup({
+        enable = true,           -- Enables transparency
+        extra_groups = {         -- Additional highlight groups to be transparent
+          "NormalFloat",         -- Transparent background for floating windows
+          "TelescopeNormal",     -- Transparent background for telescope
+          -- Add more groups as needed
+        },
+      })
+    end
+  },
+  {
+    'nvim-flutter/flutter-tools.nvim',
+    lazy = false,
+    dependencies = {
+        'nvim-lua/plenary.nvim',
+        'stevearc/dressing.nvim', -- optional for vim.ui.select
+    },
+    config = true,
   },
   {
     "akinsho/toggleterm.nvim",
@@ -134,7 +161,7 @@ require("lazy").setup({
     "williamboman/mason-lspconfig.nvim",
     config = function()
       require("mason-lspconfig").setup {
-        ensure_installed = { "clangd" },
+        ensure_installed = { "clangd", "dartls" },
       }
     end,
     dependencies = { "mason.nvim" },
@@ -310,6 +337,25 @@ vim.diagnostic.config({
     },
 })
 
+ -- Optional, you don't have to run setup.
+require("transparent").setup({
+  -- table: default groups
+  groups = {
+    'Normal', 'NormalNC', 'Comment', 'Constant', 'Special', 'Identifier',
+    'Statement', 'PreProc', 'Type', 'Underlined', 'Todo', 'String', 'Function',
+    'Conditional', 'Repeat', 'Operator', 'Structure', 'LineNr', 'NonText',
+    'SignColumn', 'CursorLine', 'CursorLineNr', 'StatusLine', 'StatusLineNC',
+    'EndOfBuffer',
+  },
+  -- table: additional groups that should be cleared
+  extra_groups = {},
+  -- table: groups you don't want to clear
+  exclude_groups = {},
+  -- function: code to be executed after highlight groups are cleared
+  -- Also the user event "TransparentClear" will be triggered
+  on_clear = function() end,
+})
+
 local lspconfig = require("lspconfig")
 
 lspconfig.clangd.setup {
@@ -318,3 +364,4 @@ lspconfig.clangd.setup {
     vim.api.nvim_command("autocmd BufWritePre <buffer> lua vim.lsp.buf.format()")
   end,
 }
+require("flutter-tools").setup {} -- use defaults

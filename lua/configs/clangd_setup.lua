@@ -104,16 +104,6 @@ function M.generate(file_path)
   local root = project_root(file_path)
   local cc_json = root .. "/compile_commands.json"
 
-  -- Check if already exists and is recent (< 1 hour old)
-  local stat = vim.loop.fs_stat(cc_json)
-  if stat then
-    local age = os.time() - stat.mtime.sec
-    if age < 3600 then
-      vim.notify("clangd_setup: compile_commands.json is recent (" .. math.floor(age / 60) .. "m old), skipping", vim.log.levels.INFO)
-      return true
-    end
-  end
-
   -- Collect files
   local sources = collect_source_files(root)
   if #sources == 0 then

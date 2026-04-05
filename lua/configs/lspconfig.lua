@@ -24,19 +24,14 @@ local on_attach = function(client, bufnr)
   end, "Format document")
 end
 
--- ── clangd helpers: auto-generate compile_commands.json + .clang-format ─
-vim.api.nvim_create_autocmd("FileType", {
-  group = vim.api.nvim_create_augroup("ClangdAutoSetup", { clear = true }),
-  pattern = { "c", "cpp", "cuda" },
-  callback = function()
-    -- Generate compile_commands.json if missing or stale
-    vim.defer_fn(function()
-      pcall(require, "configs.clangd_setup")
-      local clangd = package.loaded["configs.clangd_setup"]
-      if clangd then clangd.generate() end
-    end, 500)
-  end,
-})
+-- ── clangd helpers (manual only) ─────────────────────────────────
+vim.api.nvim_create_user_command("ClangdGen", function()
+  require("configs.clangd_setup").generate()
+end, { desc = "Generate compile_commands.json for current project" })
+
+vim.api.nvim_create_user_command("ClangdFmt", function()
+  require("configs.clang_format_setup").generate()
+end, { desc = "Generate .clang-format for current project" })
 
 -- ── clangd (C / C++) ─────────────────────────────────────────────
 lspconfig.clangd.setup({

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(github.com)",
+      "WebSearch",
+      "Bash(nvim *)",
+      "Bash(g++ *)",
+      "Bash(findstr *)"
+    ]
+  },
+  "$version": 3
+}

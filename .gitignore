@@ -1,0 +1,20 @@
+# Neovim data
+data/
+state/
+site/
+lock/
+
+# Lazy.nvim
+lazy-lock.json
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Compiled
+*.o
+*.exe
+*.dll
+
+# User-specific (not needed in shared config)
+compile_commands.json

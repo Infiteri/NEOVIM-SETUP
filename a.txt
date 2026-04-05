@@ -1,0 +1,266 @@
+vim.g.base46_cache = vim.fn.stdpath("data") .. "/base46/"
+vim.g.mapleader = " "
+
+-- Hybrid line numbers
+vim.opt.number = true
+vim.opt.relativenumber = true
+
+-- Tabs and indentation (4 spaces)
+vim.opt.expandtab = true
+vim.opt.shiftwidth = 4
+vim.opt.tabstop = 4
+vim.opt.softtabstop = 4
+vim.opt.smartindent = true
+vim.opt.autoindent = true
+
+-- Better searching
+vim.opt.ignorecase = true
+vim.opt.smartcase = true
+vim.opt.hlsearch = false
+vim.opt.incsearch = true
+
+-- Better splitting
+vim.opt.splitright = true
+vim.opt.splitbelow = true
+
+-- Clipboard
+vim.opt.clipboard = "unnamedplus"
+
+-- Undo history
+vim.opt.undofile = true
+
+-- Lazy.nvim setup
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+
+if not vim.uv.fs_stat(lazypath) then
+  local repo = "https://github.com/folke/lazy.nvim.git"
+  vim.fn.system({ "git", "clone", "--filter=blob:none", repo, "--branch=stable", lazypath })
+end
+
+vim.opt.rtp:prepend(lazypath)
+
+local lazy_config = require "configs.lazy"
+
+require("lazy").setup({
+  {
+    "NvChad/NvChad",
+    lazy = false,
+    branch = "v2.5",
+    import = "nvchad.plugins",
+  },
+
+  -- Terminal
+  {
+    "akinsho/toggleterm.nvim",
+    version = "*",
+    lazy = false,
+    config = function()
+      require("toggleterm").setup({
+        open_mapping = [[<c-\>]],
+        direction = "float",
+        float_opts = { border = "curved" },
+      })
+    end,
+  },
+
+  -- LSP and completions
+  {
+    "williamboman/mason.nvim",
+    config = true,
+  },
+  {
+    "williamboman/mason-lspconfig.nvim",
+    config = function()
+      require("mason-lspconfig").setup({
+        ensure_installed = { "clangd", "lua_ls" },
+      })
+    end,
+    dependencies = { "mason.nvim" },
+  },
+  {
+    "neovim/nvim-lspconfig",
+    config = function()
+      require "configs.lspconfig"
+    end,
+  },
+  {
+    "hrsh7th/nvim-cmp",
+    config = function()
+      local cmp = require("cmp")
+      local luasnip = require("luasnip")
+
+      cmp.setup({
+        mapping = {
+          ["<Tab>"] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_next_item()
+            elseif luasnip.expand_or_jumpable() then
+              luasnip.expand_or_jump()
+            else
+              fallback()
+            end
+          end, { "i", "s" }),
+          ["<S-Tab>"] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_prev_item()
+            elseif luasnip.jumpable(-1) then
+              luasnip.jump(-1)
+            else
+              fallback()
+            end
+          end, { "i", "s" }),
+          ["<C-Space>"] = cmp.mapping.complete(),
+          ["<CR>"] = cmp.mapping.confirm({ select = true }),
+        },
+        sources = cmp.config.sources({
+          { name = "nvim_lsp" },
+          { name = "buffer" },
+          { name = "path" },
+        }),
+      })
+    end,
+  },
+  "hrsh7th/cmp-nvim-lsp",
+  "hrsh7th/cmp-buffer",
+  "hrsh7th/cmp-path",
+
+  -- Formatting (conform.nvim - NOT none-ls)
+  {
+    "stevearc/conform.nvim",
+    opts = require "configs.conform",
+  },
+
+  -- Diagnostics and navigation
+  {
+    "folke/trouble.nvim",
+    opts = {},
+    cmd = "Trouble",
+    keys = {
+      { "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", desc = "Diagnostics (Trouble)" },
+      { "<leader>xX", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Buffer Diagnostics (Trouble)" },
+      { "<leader>cs", "<cmd>Trouble symbols toggle focus=false<cr>", desc = "Symbols (Trouble)" },
+      { "<leader>cl", "<cmd>Trouble lsp toggle focus=false win.position=right<cr>", desc = "LSP Definitions / references / ... (Trouble)" },
+      { "<leader>xL", "<cmd>Trouble loclist toggle<cr>", desc = "Location List (Trouble)" },
+      { "<leader>xQ", "<cmd>Trouble qflist toggle<cr>", desc = "Quickfix List (Trouble)" },
+    },
+  },
+
+  -- TODO comments
+  {
+    "folke/todo-comments.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    event = "VeryLazy",
+    opts = {
+      keywords = {
+        FIX = { icon = " ", color = "error" },
+        fix = { icon = " ", color = "error" },
+        TODO = { icon = " ", color = "info" },
+        todo = { icon = " ", color = "info" },
+        HACK = { icon = " ", color = "warning" },
+        hack = { icon = " ", color = "warning" },
+        WARN = { icon = " ", color = "warning" },
+        warn = { icon = " ", color = "warning" },
+        NOTE = { icon = " ", color = "hint" },
+        note = { icon = " ", color = "hint" },
+      },
+    },
+    config = function(_, opts)
+      require("todo-comments").setup(opts)
+      vim.keymap.set("n", "<leader>ft", "<cmd>TodoTelescope<CR>", { desc = "Find TODOs" })
+    end,
+  },
+
+  -- Java support
+  {
+    "mfussenegger/nvim-jdtls",
+    ft = "java",
+  },
+
+  -- C++ debugging
+  {
+    "jay-babu/mason-nvim-dap.nvim",
+    dependencies = { "williamboman/mason.nvim" },
+    config = function()
+      require("mason-nvim-dap").setup({
+        ensure_installed = { "codelldb" },
+        handlers = {},
+      })
+    end,
+  },
+
+  { import = "plugins" },
+}, lazy_config)
+
+-- Disable Netrw
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+
+vim.opt.termguicolors = true
+
+-- Nvim-tree setup
+require("nvim-tree").setup({
+  sort = { sorter = "case_sensitive" },
+  view = { width = 30 },
+  renderer = { group_empty = true },
+  filters = { dotfiles = false },
+})
+
+-- Telescope setup
+require("telescope").setup({
+  defaults = {
+    file_ignore_patterns = { "node_modules", "build", "dist", "target" },
+  },
+})
+
+-- Load NvChad themes
+dofile(vim.g.base46_cache .. "defaults")
+dofile(vim.g.base46_cache .. "statusline")
+
+require "options"
+require "nvchad.autocmds"
+
+vim.schedule(function()
+  require "mappings"
+end)
+
+-- Auto-format on save for C/C++
+vim.api.nvim_create_autocmd("BufWritePre", {
+  pattern = { "*.cpp", "*.h", "*.hpp", "*.cxx", "*.cc" },
+  callback = function()
+    require("conform").format({ lsp_fallback = true })
+  end,
+})
+
+-- Line number highlight
+vim.cmd [[
+  highlight LineNr ctermfg=White guifg=White
+]]
+
+-- Font resize
+local font_size = 12
+local function set_guifont()
+  vim.opt.guifont = string.format("FiraCode Nerd Font:h%d", font_size)
+end
+
+vim.keymap.set("n", "<C-=>", function()
+  font_size = font_size + 1
+  set_guifont()
+end, { desc = "Increase font size" })
+
+vim.keymap.set("n", "<C-->", function()
+  font_size = font_size - 1
+  set_guifont()
+end, { desc = "Decrease font size" })
+
+set_guifont()
+
+-- C++ build configuration
+require("configs.cpp_build")
+
+-- Theme keymap
+vim.api.nvim_set_keymap("n", "<C-t>", ":Telescope themes<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<C-n>", ":Telescope themes<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>ff", "<cmd>Telescope find_files<CR>", { noremap = true, silent = true })
+
+-- Load Java config if needed
+r

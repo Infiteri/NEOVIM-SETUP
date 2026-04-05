@@ -7,6 +7,9 @@ lock/
 # Lazy.nvim
 lazy-lock.json
 
+# Logs
+lsp.log
+
 # OS
 Thumbs.db
 .DS_Store
